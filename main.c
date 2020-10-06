@@ -87,7 +87,7 @@ int main(void) {
 		}
 
 		// Zapis vystupov:
-		if (edge == RISE) {				// Funkcionalita LED na dobeznu hranu.
+		if (edge == FALL) {				// Funkcionalita LED na dobeznu hranu.
 			LED ? LED_OFF : LED_ON;
 		}
 

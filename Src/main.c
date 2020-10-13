@@ -21,7 +21,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "assignment.h"
-#include "stdio.h"
 
 // Functions:
 enum EDGE_TYPE edgeDetect(uint8_t, uint8_t);
@@ -69,45 +68,46 @@ int main(void) {
 	GPIOA_OSPEEDER_REG &= ~(uint32_t)(0x3 << 8);	// OSPEEDER reset - low speed
 	GPIOA_PUPDR_REG &= ~(uint32_t)(0x3 << 8);		// PUPDR reset - no pull
 
-	// Inicializacia premennych
+	// Inicializacia premennych:
 	enum EDGE_TYPE edge;
-	uint32_t prevState, state = BUTTON_GET_STATE, LED;
+	uint8_t button_state, led_state;
 	LED_OFF;
 
 	while (1) {
 		// Nacitanie vstupov:
-		edge = NONE;				// Reset typu hrany.
-		prevState = state;			// Zapis predosleho stavu.
-		state = BUTTON_GET_STATE;	// Zapis aktualneho stavu.
-		LED = LED_GET_STATE;		// Zapis stavu LED.
-
-		// Program:
-		if (state != prevState) {
-			edge = edgeDetect(state, 5);	// Pri zmene stavu spusti funkciu edgeDetect, ktora vyhodnoti typ hrany.
-		}
+		button_state = (uint8_t)BUTTON_GET_STATE;	// Zapis aktualneho stavu.
+		led_state = (uint8_t)LED_GET_STATE;			// Zapis stavu LED.
+		edge = edgeDetect(button_state, 5);			// Funkcia edgeDetect vyhodnoti typ hrany.
 
 		// Zapis vystupov:
 		if (edge == FALL) {				// Funkcionalita LED na dobeznu hranu.
-			LED ? LED_OFF : LED_ON;
+			led_state ? LED_OFF : LED_ON;
 		}
 	}
+
+	return 0;
 }
 
 /* USER CODE BEGIN 4 */
 
 // Funkcia vyhodnoti typ hrany, pri stlaceni tlacidla.
 enum EDGE_TYPE edgeDetect(uint8_t pin_state, uint8_t samples) {
-	uint8_t prevState;	// Predosly stav.
+	static uint8_t s_prev_pin_state = (1<<3), s_count = 0;
 
-	for (int i = 0; i < samples; i++) {
-		prevState = (uint8_t)BUTTON_GET_STATE;
+	if (pin_state != s_prev_pin_state) {
+		s_count++;
 
-		if (prevState != pin_state) {
-			return NONE;	// Pokial sa zmeni stav na tlacidle, pocas 5 cyklov, tak funkcia nezaregistruje hranu.
+		if (s_count >= samples) {
+			s_prev_pin_state = pin_state;
+			s_count = 0;
+			return (pin_state ? FALL : RISE);	// Funkcia vrati typ hrany podla aktualneho stavu pin-u.
 		}
 	}
+	else {
+		s_count = 0;
+	}
 
-	return (pin_state ? FALL : RISE);	// Funkcia vrati typ hrany podla povodneho stavu pin-u.
+	return NONE;
 }
 
 /* USER CODE END 4 */
